@@ -1,7 +1,6 @@
 target/
 dist/
 node_modules/
-.copilot/
 *.key
 *.log
 *.exe
