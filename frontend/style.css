@@ -486,3 +486,19 @@ body {
     transform: scale(0.95);
   }
 }
+
+#edit-modal {
+  &> .cardstyle-ui {
+    &> main {
+      &> textarea {
+        resize: none;
+        border: solid 1px color-mix(
+          in srgb, 
+          var(--color-page-border-filter) 10%, 
+          var(--color-background)
+        );
+        border-radius: 0.5em;
+      }
+    }
+  }
+}
