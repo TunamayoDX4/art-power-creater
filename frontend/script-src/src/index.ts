@@ -84,6 +84,15 @@ function main(): number {
     }
   })
 
+  // Ctrl+Sで保存処理を実行する
+  // ただし、デフォルトの保存処理はキャンセルする
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      // 必要ならここで「保存しました！」などの通知も出せるよ
+    }
+  });
+
   Array.from(card).forEach((element) => {
     let card = new CardElement(element as HTMLElement);
     card.header!.innerHTML = "<h2>カカカード</h2>"
@@ -94,7 +103,9 @@ function main(): number {
     if (!editModal) return;
   
     let currentCardTitle: HTMLElement | null = null;
+    let currentTitleStr: string | null = null;
     let currentCardMain: HTMLElement | null = null;
+    let currentMainStr: string | null = null;
     const titlearea = document.getElementById("edit-modal-title") as HTMLInputElement;
     const textarea = document.getElementById("edit-modal-textarea") as HTMLTextAreaElement;
     const saveBtn = document.getElementById("edit-modal-save") as HTMLButtonElement;
@@ -107,20 +118,21 @@ function main(): number {
         const main = card.querySelector("main")!;
         titlearea.value = title!.innerText; // 編集前のタイトルをセット
         textarea.value = main.innerText; // 編集前の内容をセット
+        currentTitleStr = titlearea.value; // 編集前のタイトルを保存
+        currentMainStr = textarea.value; // 編集前の内容を保存
         currentCardTitle = title;
         currentCardMain = main;
         editModal.openModal();
       });
     });
 
-    // Enterキーで保存
     textarea.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
+      // Ctrl+Sで保存
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
-        if (currentCardMain) {
-          currentCardTitle!.innerText = titlearea.value; // 編集内容を反映
+        if (currentCardMain && currentCardTitle) {
+          currentCardTitle.innerText = titlearea.value;
           currentCardMain.innerText = textarea.value;
-          editModal.closeModal();
         }
       }
     });
