@@ -1,0 +1,5 @@
+max_width = 61
+hard-tabs = false
+newline_style = "Unix"
+use_small_heuristics = "Max"
+tab_spaces = 2

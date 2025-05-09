@@ -1,138 +1,138 @@
 /// ART-Power-CreaterのTypeScriptコード
 /// 
 
-import { CardElement } from "./card_ui";
+import { CardElement, CardCollection } from "./card_ui";
+import { ModalCardElement } from "./modal_ui";
 
-/// LLMのメッセージの役割・送信元の指定
-type LlmMessageRole = "user" 
-| "assistant" 
-| "system" 
-| "function" 
-| "function_call";
-
-/// LLMのメッセージの構造体
-type LlmMessage = {
-  role: LlmMessageRole;
-  content?: string;
-  name?: string;
-  arguments?: string;
-}
-
-/// Socket経由のメッセージ受取の一次処理インターフェース
-interface MessageReceiver {
-  /// Socketからのメッセージ受信の一次処理インターフェース
-  /// @param message 受信したメッセージ
-  /// exmaple: recerive(message: string)... {
-  ///   console.log("Received message: " + message);
-  ///   return message;
-  /// }
-  receive(message: string): string;
-}
-
-/// Socket経由のメッセージ送信の一次処理インターフェース
-interface MessageTransmitter {
-  /// Socketへのメッセージ送信の一次処理インターフェース
-  /// @param message 送信するメッセージ
-  /// exmaple: transmit(message: string)... {
-  ///   console.log("Transmitting message: " + message);
-  ///   return message;
-  /// }
-  transmit(message: string): string;
-}
-
-/// Socketの抽象化インターフェース
-/// @param receiver Socketからのメッセージ受信の一次処理インターフェース
-/// @param transmitter Socketへのメッセージ送信の一次処理インターフェース
-/// @param socket_helper Socketのヘルパークラス
-/// @param socket_abstract Socketの抽象化インターフェース
-/// @param socket_helper Socketのヘルパークラス
-interface SocketAbstract {
-
-  /// Socketの初期化
-  init(): void;
-  /// Socketの接続
-  connect(): void;
-  /// Socketの切断
-  disconnect(): void;
-  /// Socketのメッセージ受信
-  receiveMessage(message: string): void;
-  /// Socketのメッセージ送信
-  sendMessage(message: string): void;
-}
-
-/// Socketのヘルパークラス
-/// @param receiver Socketからのメッセージ受信の一次処理インターフェース
-/// @param transmitter Socketへのメッセージ送信の一次処理インターフェース
-class SocketHelper {
-  receiver: MessageReceiver;
-  transmitter: MessageTransmitter;
-  socket: SocketAbstract;
-  constructor(receiver: MessageReceiver, transmitter: MessageTransmitter, socket: SocketAbstract) {
-    this.receiver = receiver;
-    this.transmitter = transmitter;
-    this.socket = socket;
-  }
-  send(message: string): void {
-    // メッセージを送信する前に一次処理を行う
-    const processedMessage = this.transmitter.transmit(message);
-    this.socket.sendMessage(processedMessage);
-  }
-  recv(message: string): void {
-    // メッセージを受信した後に一次処理を行う
-    const processedMessage = this.receiver.receive(message);
-    this.socket.receiveMessage(processedMessage);
-  }
-}
-
-/// LLMとのインターフェースの抽象化
-class LlmInterface {
-  /// サーバとのソケット
-  server: WebSocket;
-  /// LLMのモデル名
-  model: string;
-  /// 使用可能なモデルのリスト
-  usable_models: Array<string> | null;
-  temperature: number;
-  max_tokens: number;
-  stream_mode: boolean;
-  messages: Array<LlmMessage>;
-
-  constructor(
-    server: WebSocket,
-    model: string, 
-    temperature: number, 
-    max_tokens: number, 
-    stream_mode: boolean, 
-    messages: Array<LlmMessage> | null = null, 
-  ) {
-    this.server = server;
-    this.model = model;
-    this.usable_models = null;
-    this.messages = messages ? messages : [];
-    this.temperature = temperature;
-    this.max_tokens = max_tokens;
-    this.stream_mode = stream_mode;
-  }
-}
-
-// アシスタントAIに対するインターフェースの抽象化
-class AssistantAIInterface {
-  // ユーザが指定しているメッセージのインデックス
-  index: number;
-
-  constructor(index: number) {
-    this.index = index;
-  }
-}
+let pulldown: HTMLCollectionOf<Element> | null = null;
+let card: HTMLCollectionOf<Element> | null = null;
+let modalHandler: HTMLCollectionOf<Element> | null = null;
+const container = document.getElementById("collection-cards") as HTMLElement | null;
+const collectionCards = Array.from(container?.getElementsByClassName("cardstyle-ui-wrap") ?? []).map((element) => {
+  return element.getElementsByClassName("cardstyle-ui")[0] as HTMLElement;
+})
+const cardCollection = new CardCollection(container as HTMLElement, collectionCards as HTMLElement[]);
 
 // 実質上のエントリーポイント
 function main(): number {
-  const card = document.getElementsByClassName("card-ui");
+  pulldown = document.getElementsByClassName("pulldown-ui");
+  card = document.getElementsByClassName("card-ui");
+  modalHandler = document.getElementsByClassName("modal-handler");
+  const modals = Array.from(modalHandler).map((element) => {
+    return new ModalCardElement(element as HTMLElement);
+  }).filter((element) => {
+    return element !== null;
+  });
+  console.log(modals);
+
+  // クリックイベントリスナーを追加
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const targetParent = target.parentElement;
+
+    // クリックされたプルダウンを開く
+    if (pulldown && targetParent?.classList[0] == "pulldown-ui") {
+      Array.from(pulldown).forEach((element) => {
+        if (element !== targetParent) {
+          const pulldownBody = element.getElementsByTagName("ul")[0] ?? null;
+          if (pulldownBody) {
+            pulldownBody.style.display = "none";
+          }
+        } else {
+          const pulldownBody = element.getElementsByTagName("ul")[0] ?? null;
+          if (pulldownBody) {
+            if (pulldownBody.style.display === "none") {
+              // プルダウンを開く処理
+              pulldownBody.style.display = "block";
+
+              // プルダウンの位置を取得する。
+              const rect = pulldownBody.getClientRects()[0];
+              const clientW = window.innerWidth;
+              if (clientW < rect.x + rect.width) {
+                // 画面の右端にプルダウンがはみ出す場合、位置を調整する。
+                pulldownBody.style.marginLeft = "0px";
+                pulldownBody.style.right = "0px";
+              }
+
+            } else {
+              pulldownBody.style.display = "none";
+            }
+          }  
+        }
+      })
+    }
+
+    if (pulldown && targetParent?.classList[0] != "pulldown-ui") {
+      // プルダウン以外がクリックされた場合、全てのプルダウンを閉じる
+      Array.from(pulldown).forEach((element) => {
+        const pulldownBody = element.getElementsByTagName("ul")[0] ?? null;
+        if (pulldownBody) {
+          pulldownBody.style.display = "none";
+        }
+      })
+    }
+  })
+
+  document.addEventListener("keydown", (event) => {
+    if (modalHandler && event.key === "Escape") {
+      // モーダルウィンドウを閉じる処理
+      console.log("モーダルウィンドウを閉じる処理が実行されました。");
+      // 全てのモーダルウィンドウを閉じる
+      Array.from(modals).forEach((modal) => {
+        modal.closeModal();
+      })
+    }
+  })
 
   Array.from(card).forEach((element) => {
     let card = new CardElement(element as HTMLElement);
     card.header!.innerHTML = "<h2>カカカード</h2>"
   })
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const editModal = modals[1] as ModalCardElement | null;
+    if (!editModal) return;
+  
+    let currentCardTitle: HTMLElement | null = null;
+    let currentCardMain: HTMLElement | null = null;
+    const titlearea = document.getElementById("edit-modal-title") as HTMLInputElement;
+    const textarea = document.getElementById("edit-modal-textarea") as HTMLTextAreaElement;
+    const saveBtn = document.getElementById("edit-modal-save") as HTMLButtonElement;
+  
+    document.querySelectorAll(".modify").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const card = btn.parentElement?.parentElement as HTMLElement | null;
+        if (!card) return;
+        const title = card.querySelector(".cardstyle-title") as HTMLElement | null;
+        const main = card.querySelector("main")!;
+        titlearea.value = title!.innerText; // 編集前のタイトルをセット
+        textarea.value = main.innerText; // 編集前の内容をセット
+        currentCardTitle = title;
+        currentCardMain = main;
+        editModal.openModal();
+      });
+    });
+
+    // Enterキーで保存
+    textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (currentCardMain) {
+          currentCardTitle!.innerText = titlearea.value; // 編集内容を反映
+          currentCardMain.innerText = textarea.value;
+          editModal.closeModal();
+        }
+      }
+    });
+  
+    saveBtn.addEventListener("click", () => {
+      if (currentCardMain) {
+        currentCardTitle!.innerText = titlearea.value; // 編集内容を反映
+        currentCardMain.innerText = textarea.value; // 編集内容を反映
+        editModal.closeModal();
+      }
+    });
+  });
 
   return 0;
 }
@@ -140,7 +140,7 @@ function main(): number {
 // エントリーポイントのコール
 let return_code = main();
 if (return_code != 0) {
-  console.error("Error: main() returned " + return_code);
+  console.error("❌エラー！ main関数は以下のリターンコードで終了しました。 : " + return_code);
 } else {
-  console.log("Success: main() executed successfully.");
+  console.info("✅成功！ main関数は正常に終了しました。");
 }

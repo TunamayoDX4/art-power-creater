@@ -1,0 +1,6 @@
+{
+  "log_config": {
+    "log_dir": "./log",
+    "log_max_rotation_count": 14
+  }
+}
